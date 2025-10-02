@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import StudentDashboard from "./pages/student/Dashboard";
 import TeacherDashboard from "./pages/teacher/Dashboard";
@@ -20,24 +22,47 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Login />} />
-            
-            {/* Student Routes */}
-            <Route path="/student/dashboard" element={<StudentDashboard />} />
-            
-            {/* Teacher Routes */}
-            <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-            
-            {/* Head Teacher Routes */}
-            <Route path="/headteacher/dashboard" element={<HeadTeacherDashboard />} />
-            
-            {/* Utility Routes */}
-            <Route path="/offline" element={<Offline />} />
-            
-            {/* Catch-all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Login />} />
+              
+              {/* Student Routes */}
+              <Route 
+                path="/student/dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={["student"]}>
+                    <StudentDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Teacher Routes */}
+              <Route 
+                path="/teacher/dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={["teacher"]}>
+                    <TeacherDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Head Teacher Routes */}
+              <Route 
+                path="/headteacher/dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={["headteacher"]}>
+                    <HeadTeacherDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Utility Routes */}
+              <Route path="/offline" element={<Offline />} />
+              
+              {/* Catch-all */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
