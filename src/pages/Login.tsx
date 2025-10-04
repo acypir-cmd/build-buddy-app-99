@@ -6,10 +6,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { z } from "zod";
 
 type UserRole = "student" | "teacher" | "headteacher";
+
+const signUpSchema = z.object({
+  schoolId: z.string().trim().min(1, "School ID is required").max(50, "School ID too long"),
+  email: z.string().trim().email("Invalid email address").max(255, "Email too long"),
+  password: z.string().min(6, "Password must be at least 6 characters").max(100, "Password too long"),
+  fullName: z.string().trim().min(1, "Full name is required").max(100, "Name too long"),
+  role: z.enum(["student", "teacher", "headteacher"], { required_error: "Please select a role" }),
+});
 
 export default function Login() {
   const navigate = useNavigate();
@@ -82,37 +92,48 @@ export default function Login() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!signUpData.schoolId || !signUpData.email || !signUpData.password || !signUpData.role || !signUpData.fullName) {
-      toast({
-        title: "Missing fields",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
-      return;
-    }
+    try {
+      const validatedData = signUpSchema.parse(signUpData);
+      
+      setIsLoading(true);
 
-    setIsLoading(true);
+      const { error } = await signUp(
+        validatedData.email,
+        validatedData.password,
+        validatedData.schoolId,
+        validatedData.role,
+        validatedData.fullName
+      );
 
-    const { error } = await signUp(
-      signUpData.email,
-      signUpData.password,
-      signUpData.schoolId,
-      signUpData.role,
-      signUpData.fullName
-    );
-
-    if (error) {
-      toast({
-        title: "Sign up failed",
-        description: error.message || "Could not create account",
-        variant: "destructive",
-      });
+      if (error) {
+        let errorMessage = error.message || "Could not create account";
+        
+        if (error.message?.includes("Invalid school ID")) {
+          errorMessage = `School ID "${signUpData.schoolId}" not found. Please check with your school administrator.`;
+        }
+        
+        toast({
+          title: "Sign up failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        setIsLoading(false);
+      } else {
+        toast({
+          title: "Account created!",
+          description: "Welcome to RLS Guard Dog",
+        });
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        toast({
+          title: "Validation error",
+          description: firstError.message,
+          variant: "destructive",
+        });
+      }
       setIsLoading(false);
-    } else {
-      toast({
-        title: "Account created!",
-        description: "Welcome to RLS Guard Dog",
-      });
     }
   };
 
@@ -171,6 +192,12 @@ export default function Login() {
 
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4 mt-4">
+                <Alert className="mb-4">
+                  <AlertDescription className="text-sm">
+                    Contact your school administrator to get your School ID
+                  </AlertDescription>
+                </Alert>
+                
                 <div className="space-y-2">
                   <Label htmlFor="signup-name">Full Name</Label>
                   <Input
@@ -179,6 +206,7 @@ export default function Login() {
                     value={signUpData.fullName}
                     onChange={(e) => setSignUpData({ ...signUpData, fullName: e.target.value })}
                     disabled={isLoading}
+                    required
                   />
                 </div>
 
@@ -186,10 +214,11 @@ export default function Login() {
                   <Label htmlFor="signup-schoolId">School ID</Label>
                   <Input
                     id="signup-schoolId"
-                    placeholder="Enter your school ID"
+                    placeholder="e.g., SCH001"
                     value={signUpData.schoolId}
-                    onChange={(e) => setSignUpData({ ...signUpData, schoolId: e.target.value })}
+                    onChange={(e) => setSignUpData({ ...signUpData, schoolId: e.target.value.trim() })}
                     disabled={isLoading}
+                    required
                   />
                 </div>
 
