@@ -14,7 +14,6 @@ import { z } from "zod";
 type UserRole = "student" | "teacher" | "headteacher";
 
 const signUpSchema = z.object({
-  schoolId: z.string().trim().min(1, "School ID is required").max(50, "School ID too long"),
   email: z.string().trim().email("Invalid email address").max(255, "Email too long"),
   password: z.string().min(6, "Password must be at least 6 characters").max(100, "Password too long"),
   fullName: z.string().trim().min(1, "Full name is required").max(100, "Name too long"),
@@ -34,7 +33,6 @@ export default function Login() {
   });
 
   const [signUpData, setSignUpData] = useState({
-    schoolId: "",
     email: "",
     password: "",
     fullName: "",
@@ -100,21 +98,14 @@ export default function Login() {
       const { error } = await signUp(
         validatedData.email,
         validatedData.password,
-        validatedData.schoolId,
         validatedData.role,
         validatedData.fullName
       );
 
       if (error) {
-        let errorMessage = error.message || "Could not create account";
-        
-        if (error.message?.includes("Invalid school ID")) {
-          errorMessage = `School ID "${signUpData.schoolId}" not found. Please check with your school administrator.`;
-        }
-        
         toast({
           title: "Sign up failed",
-          description: errorMessage,
+          description: error.message || "Could not create account",
           variant: "destructive",
         });
         setIsLoading(false);
@@ -192,12 +183,6 @@ export default function Login() {
 
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4 mt-4">
-                <Alert className="mb-4">
-                  <AlertDescription className="text-sm">
-                    Contact your school administrator to get your School ID
-                  </AlertDescription>
-                </Alert>
-                
                 <div className="space-y-2">
                   <Label htmlFor="signup-name">Full Name</Label>
                   <Input
@@ -205,18 +190,6 @@ export default function Login() {
                     placeholder="Enter your full name"
                     value={signUpData.fullName}
                     onChange={(e) => setSignUpData({ ...signUpData, fullName: e.target.value })}
-                    disabled={isLoading}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="signup-schoolId">School ID</Label>
-                  <Input
-                    id="signup-schoolId"
-                    placeholder="e.g., SCH001"
-                    value={signUpData.schoolId}
-                    onChange={(e) => setSignUpData({ ...signUpData, schoolId: e.target.value.trim() })}
                     disabled={isLoading}
                     required
                   />

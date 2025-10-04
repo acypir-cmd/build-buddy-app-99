@@ -12,7 +12,7 @@ interface AuthContextType {
   role: UserRole | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, schoolId: string, role: UserRole, fullName: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, role: UserRole, fullName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -96,22 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (
     email: string,
     password: string,
-    schoolId: string,
     role: UserRole,
     fullName: string
   ) => {
     try {
-      // First, get the school UUID from school_id
-      const { data: schoolData, error: schoolError } = await supabase
-        .from("schools")
-        .select("id")
-        .eq("school_id", schoolId)
-        .single();
-
-      if (schoolError || !schoolData) {
-        return { error: { message: "Invalid school ID" } };
-      }
-
       const redirectUrl = `${window.location.origin}/`;
       
       const { error } = await supabase.auth.signUp({
@@ -120,7 +108,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            school_id: schoolData.id,
             role: role,
             full_name: fullName,
           },
